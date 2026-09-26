@@ -1,0 +1,14 @@
+package com.example.AppSegurity.Repositorys;
+
+import com.example.AppSegurity.Models.AlertaEvidencia;
+import java.util.List;
+import org.springframework.data.mongodb.repository.MongoRepository;
+
+public interface AlertaEvidenciaRepository extends MongoRepository<AlertaEvidencia, String>{
+    
+    //buscar todas las alertas que tengan el mismo id de sesion
+    List<AlertaEvidencia> findBySesionIdOrderByHoraCapturaAsc(String sesionId);
+    
+    //buscar todas las alertas de multiples sesiones
+    List<AlertaEvidencia> findBySesionIdInOrderByHoraCapturaDesc(List<String> sesionIds);
+}
