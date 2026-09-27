@@ -25,6 +25,59 @@ public class ExamenService {
     @Autowired
     private ExamenRepository examenRepository;
 
+    @Autowired
+    private com.example.AppSegurity.Repositorys.EstudianteRepository estudianteRepository;
+    
+    @Autowired
+    private org.springframework.security.crypto.password.PasswordEncoder passwordEncoder;
+
+    public void bulkInscribirEstudiantes(String codigoExamen, List<com.example.AppSegurity.Models.Estudiante> estudiantesCsv) {
+        Examen examen = examenRepository.findById(codigoExamen).orElseThrow(() -> new RuntimeException("Examen no encontrado"));
+        String materiaCodigo = examen.getMateriaCodigo();
+        
+        for (com.example.AppSegurity.Models.Estudiante est : estudiantesCsv) {
+            java.util.Optional<com.example.AppSegurity.Models.Estudiante> existenteOpt = estudianteRepository.findByCedula(est.getCedula());
+            if (existenteOpt.isPresent()) {
+                com.example.AppSegurity.Models.Estudiante existente = existenteOpt.get();
+                boolean tieneMateria = false;
+                if (existente.getMateriasInscritas() == null) {
+                    existente.setMateriasInscritas(new ArrayList<>());
+                }
+                for (com.example.AppSegurity.Sub_Clases.Materia m : existente.getMateriasInscritas()) {
+                    if (m.getCodigoMateria().equals(materiaCodigo)) {
+                        tieneMateria = true;
+                        break;
+                    }
+                }
+                if (!tieneMateria) {
+                    com.example.AppSegurity.Sub_Clases.Materia m = new com.example.AppSegurity.Sub_Clases.Materia();
+                    m.setCodigoMateria(materiaCodigo);
+                    m.setNombreMateria("Matricula Masiva");
+                    existente.getMateriasInscritas().add(m);
+                    estudianteRepository.save(existente);
+                }
+            } else {
+                est.setEstudianteId("EST-" + est.getCedula());
+                est.setPasswordHash(passwordEncoder.encode("123456"));
+                est.setEstadoUsuario(com.example.AppSegurity.Enums.EstadoUsuario.ACTIVO);
+                
+                com.example.AppSegurity.Sub_Clases.Materia m = new com.example.AppSegurity.Sub_Clases.Materia();
+                m.setCodigoMateria(materiaCodigo);
+                m.setNombreMateria("Matricula Masiva");
+                
+                List<com.example.AppSegurity.Sub_Clases.Materia> materias = new ArrayList<>();
+                materias.add(m);
+                est.setMateriasInscritas(materias);
+                
+                com.example.AppSegurity.Sub_Clases.Auditoria aud = new com.example.AppSegurity.Sub_Clases.Auditoria();
+                aud.setFechaRegistro(java.time.LocalDateTime.now());
+                est.setAuditoria(aud);
+                
+                estudianteRepository.save(est);
+            }
+        }
+    }
+
     public Examen crearExamen(String codigoExamen, String codigoProfesor, String materiaCodigo, FechaExamen fecha) {
         //Generamos el PIN de manera aleatoria e irrepetible
         String PIN_aleatorio = UUID.randomUUID().toString().substring(0, 6).toUpperCase();
@@ -186,6 +239,16 @@ public class ExamenService {
                 }
             }
         }
+    }
+
+    // Obtener un examen por su código
+    public Examen obtenerExamenPorId(String codigoExamen) {
+        return examenRepository.findById(codigoExamen).orElse(null);
+    }
+
+    // Guardar/actualizar un examen existente
+    public void guardarExamen(Examen examen) {
+        examenRepository.save(examen);
     }
 
 }

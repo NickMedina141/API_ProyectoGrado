@@ -102,7 +102,7 @@ public class EstudianteDataSeeder implements CommandLineRunner {
 
             for (int i = 0; i < 10; i++) {
                 String email = nombresEst[i].toLowerCase() + "." + apellidosEst[i].toLowerCase() + "@unicesar.edu.co";
-                if (estudianteRepository.findByEmail(email).isEmpty()) {
+                if (estudianteRepository.findByEmailIgnoreCase(email).isEmpty()) {
                     Estudiante est = new Estudiante();
                     est.setEstudianteId("EST-" + (2000 + i));
                     est.setNombre(nombresEst[i]);

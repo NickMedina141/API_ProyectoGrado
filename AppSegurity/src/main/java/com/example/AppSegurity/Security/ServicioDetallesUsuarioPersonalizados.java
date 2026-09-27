@@ -40,7 +40,19 @@ public class ServicioDetallesUsuarioPersonalizados implements UserDetailsService
         }
 
         //2. Si no era un profesor, intentamos buscar si es un Estudiante
-        Estudiante estudiante = estudianteRepository.findByEmail(email).orElse(null);
+        java.util.List<Estudiante> estudiantes = estudianteRepository.findByEmailIgnoreCase(email);
+        Estudiante estudiante = null;
+        if (estudiantes.size() > 1) {
+            for (Estudiante e : estudiantes) {
+                if (e.getEstudianteId() != null && e.getEstudianteId().contains(" ")) {
+                    estudianteRepository.delete(e);
+                } else {
+                    estudiante = e;
+                }
+            }
+        } else if (estudiantes.size() == 1) {
+            estudiante = estudiantes.get(0);
+        }
 
         if (estudiante != null) {
             //Si es estudiante, hacemos lo mismo

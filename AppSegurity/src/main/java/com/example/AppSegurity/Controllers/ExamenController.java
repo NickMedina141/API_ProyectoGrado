@@ -85,4 +85,48 @@ public class ExamenController {
         }
     }
     
+    @PostMapping("/{codigoExamen}/estudiantes/bulk")
+    public ResponseEntity<?> bulkUploadEstudiantes(@PathVariable String codigoExamen, @RequestBody List<com.example.AppSegurity.Models.Estudiante> estudiantes) {
+        try {
+            examenService.bulkInscribirEstudiantes(codigoExamen, estudiantes);
+            return ResponseEntity.ok("Estudiantes inscritos correctamente");
+        } catch (Exception e) {
+            return ResponseEntity.status(400).body("Error al inscribir estudiantes: " + e.getMessage());
+        }
+    }
+
+    // Guardar el análisis global de la IA en el examen (reemplaza si ya existe)
+    @PutMapping("/{codigoExamen}/analisis-ia")
+    public ResponseEntity<?> guardarAnalisisIA(
+            @PathVariable String codigoExamen,
+            @RequestBody com.example.AppSegurity.Sub_Clases.AnalisisGlobal_IA analisis) {
+        try {
+            com.example.AppSegurity.Models.Examen examen = examenService.obtenerExamenPorId(codigoExamen);
+            if (examen == null) {
+                return ResponseEntity.status(404).body("Examen no encontrado");
+            }
+            examen.setAnalisisGlobalIA(analisis);
+            examenService.guardarExamen(examen);
+            return ResponseEntity.ok("Análisis guardado correctamente");
+        } catch (Exception e) {
+            return ResponseEntity.status(400).body("Error al guardar el análisis: " + e.getMessage());
+        }
+    }
+
+    // Obtener el análisis global de la IA del examen
+    @GetMapping("/{codigoExamen}/analisis-ia")
+    public ResponseEntity<?> obtenerAnalisisIA(@PathVariable String codigoExamen) {
+        try {
+            com.example.AppSegurity.Models.Examen examen = examenService.obtenerExamenPorId(codigoExamen);
+            if (examen == null) {
+                return ResponseEntity.status(404).body("Examen no encontrado");
+            }
+            if (examen.getAnalisisGlobalIA() == null) {
+                return ResponseEntity.status(204).body(null); // 204 = sin contenido, no hay análisis aún
+            }
+            return ResponseEntity.ok(examen.getAnalisisGlobalIA());
+        } catch (Exception e) {
+            return ResponseEntity.status(400).body("Error al obtener el análisis: " + e.getMessage());
+        }
+    }
 }

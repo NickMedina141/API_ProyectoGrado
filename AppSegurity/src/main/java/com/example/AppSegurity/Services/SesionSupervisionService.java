@@ -50,7 +50,7 @@ public class SesionSupervisionService {
 
         // Se trae el estudiante de la base de datos para ver las materias que tiene
         Estudiante estudiante = estudianteRepository.findById(idEstudiante)
-                .orElseGet(() -> estudianteRepository.findByEmail(idEstudiante)
+                .orElseGet(() -> estudianteRepository.findByEmailIgnoreCase(idEstudiante).stream().findFirst()
                 .orElseThrow(() -> new RuntimeException("Estudiante no encontrado (ID o Email: " + idEstudiante + ")")));
 
         // Validamos que el profesor tenga el examen abierto (Estado_pin == ACTIVO)
@@ -148,7 +148,7 @@ public class SesionSupervisionService {
         }
         
         if (examen.getConfiguracionExamen() != null && examen.getConfiguracionExamen().getPermitirReintentos() != null) {
-             if (intentosCompletados >= examen.getConfiguracionExamen().getPermitirReintentos()) {
+             if (intentosCompletados > examen.getConfiguracionExamen().getPermitirReintentos()) {
                  throw new RuntimeException("Has alcanzado el limite maximo de intentos permitidos.");
              }
         }

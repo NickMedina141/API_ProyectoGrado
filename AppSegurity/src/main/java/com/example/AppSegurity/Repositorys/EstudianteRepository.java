@@ -8,5 +8,7 @@ public interface EstudianteRepository extends MongoRepository<Estudiante, String
     
     //Busca y trae el email del estudiante
     Optional<Estudiante> findByEmail(String email);
+    java.util.List<Estudiante> findByEmailIgnoreCase(String email);
+    Optional<Estudiante> findByCedula(String cedula);
     
 }

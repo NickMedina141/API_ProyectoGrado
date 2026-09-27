@@ -1,6 +1,7 @@
 package com.example.AppSegurity.Models;
 
 import com.example.AppSegurity.Enums.EstadoExamen;
+import com.example.AppSegurity.Sub_Clases.AnalisisGlobal_IA;
 import com.example.AppSegurity.Sub_Clases.ConfiguracionExamen;
 import com.example.AppSegurity.Sub_Clases.ControlAcceso;
 import com.example.AppSegurity.Sub_Clases.FechaExamen;
@@ -24,6 +25,7 @@ public class Examen {
     private ControlAcceso controlAcceso;
     private FechaExamen fechaExamen;
     private ConfiguracionExamen configuracionExamen;
+    private AnalisisGlobal_IA analisisGlobalIA;
     
     //Constructor sin parametros
     public Examen(){

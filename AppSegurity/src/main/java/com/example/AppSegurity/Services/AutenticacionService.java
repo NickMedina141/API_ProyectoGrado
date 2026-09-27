@@ -37,8 +37,22 @@ public class AutenticacionService {
         Authentication auth = authenticationManager.authenticate(new UsernamePasswordAuthenticationToken(email, passwordTextoPlano));
 
         //Buscamos al estudiante por su email en la base de datos 
-        Estudiante estudiante = estudianteRepository.findByEmail(email)
-                .orElseThrow(() -> new RuntimeException("No se encontro el email del estudiante"));
+        java.util.List<Estudiante> estudiantes = estudianteRepository.findByEmailIgnoreCase(email);
+        Estudiante estudiante = null;
+        if (estudiantes.size() > 1) {
+            for (Estudiante e : estudiantes) {
+                if (e.getEstudianteId() != null && e.getEstudianteId().contains(" ")) {
+                    estudianteRepository.delete(e);
+                } else {
+                    estudiante = e;
+                }
+            }
+        } else if (estudiantes.size() == 1) {
+            estudiante = estudiantes.get(0);
+        }
+        if (estudiante == null) {
+            throw new RuntimeException("No se encontro el email del estudiante");
+        }
 
         //Validamos que el estudiante en cuestión su estado no sea inactivo o pfu
         if (estudiante.getEstadoUsuario() != EstadoUsuario.ACTIVO) {
