@@ -52,7 +52,7 @@ public class ConfiguracionSeguridad {
     @Bean
     public PasswordEncoder passwordEncoder() {
         // Configuramos Argon2 con valores modernos y altamente seguros
-        return new Argon2PasswordEncoder(16, 32, 1, 4096, 3);
+        return new Argon2PasswordEncoder(16, 32, 1, 64, 2);
     }
 
     // 3. EXPORTAR EL MANAGER DE AUTENTICACIÓN
