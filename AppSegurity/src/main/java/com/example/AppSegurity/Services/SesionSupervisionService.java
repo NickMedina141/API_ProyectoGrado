@@ -272,6 +272,11 @@ public class SesionSupervisionService {
             // El profesor esta suscrito a /topic/alertas/{codigoExamen}
             try {
                 alertaGuardar.setNombreEstudiante(nombreEstudiante.replace("_", " ")); // Formato bonito
+                // Attach transient base64 for real-time bypass
+                alertaGuardar.setBase64WebcamTransient(alertaRequest.getUrlFotoWebcam());
+                alertaGuardar.setBase64PantallaTransient(alertaRequest.getUrlCapturaPantalla());
+                alertaGuardar.setBase64AudioTransient(alertaRequest.getUrlAudio());
+                
                 webSocketMessagingTemplate.convertAndSend(
                     "/topic/alertas/" + sesionSupervision.getExamenId(),
                     alertaGuardar

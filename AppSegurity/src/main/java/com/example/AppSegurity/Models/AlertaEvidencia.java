@@ -25,6 +25,20 @@ public class AlertaEvidencia {
     private String nombreEstudiante;
     
     //Constructor sin parametros
+    @org.springframework.data.annotation.Transient
+    private String base64WebcamTransient;
+    @org.springframework.data.annotation.Transient
+    private String base64PantallaTransient;
+    @org.springframework.data.annotation.Transient
+    private String base64AudioTransient;
+
+    public String getBase64WebcamTransient() { return base64WebcamTransient; }
+    public void setBase64WebcamTransient(String b) { this.base64WebcamTransient = b; }
+    public String getBase64PantallaTransient() { return base64PantallaTransient; }
+    public void setBase64PantallaTransient(String b) { this.base64PantallaTransient = b; }
+    public String getBase64AudioTransient() { return base64AudioTransient; }
+    public void setBase64AudioTransient(String b) { this.base64AudioTransient = b; }
+
     public AlertaEvidencia(){
         
     }
