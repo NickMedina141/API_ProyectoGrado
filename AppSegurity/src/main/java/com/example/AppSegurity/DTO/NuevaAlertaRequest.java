@@ -24,6 +24,11 @@ public class NuevaAlertaRequest {
     private String urlFotoWebcam;
     private String urlCapturaPantalla;
     
+    //Hashes de integridad de evidencias (E2EE)
+    private String hashWebcam;
+    private String hashPantalla;
+    private String hashAudio;
+    
     //Campos de una alerta de tipo audio
     private String transcripcion;
     private Integer vocesDetectadas;

@@ -21,6 +21,11 @@ public class AlertaEvidencia {
     private LocalDateTime horaCaptura;
     private NivelRiesgo nivelRiesgo;
     
+    //Hashes de integridad de evidencias (E2EE)
+    private String hashWebcam;
+    private String hashPantalla;
+    private String hashAudio;
+    
     @org.springframework.data.annotation.Transient
     private String nombreEstudiante;
     
