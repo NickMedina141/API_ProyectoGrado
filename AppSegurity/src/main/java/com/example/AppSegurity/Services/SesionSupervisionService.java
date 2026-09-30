@@ -222,8 +222,8 @@ public class SesionSupervisionService {
         AlertaEvidencia alertaGuardar = null;
 
         if (alertaRequest.getClaseAlerta() == ClaseAlerta.VISION || alertaRequest.getClaseAlerta() == ClaseAlerta.OBJETO) {
-            String rutaWebcam = fileStorageService.guardarEvidenciaBase64(alertaRequest.getUrlFotoWebcam(), sesionId, "webcam", nombreEstudiante, examen.getMateriaCodigo());
-            String rutaPantalla = fileStorageService.guardarEvidenciaBase64(alertaRequest.getUrlCapturaPantalla(), sesionId, "pantalla", nombreEstudiante, examen.getMateriaCodigo());
+            String rutaWebcam = "E2EE_WEBCAM";
+            String rutaPantalla = "E2EE_PANTALLA";
             
             alertaGuardar = new AlertaVision(
                     alertaRequest.getTipoEvidenciaVision(),
@@ -234,7 +234,7 @@ public class SesionSupervisionService {
                     rutaPantalla);
 
         } else if (alertaRequest.getClaseAlerta() == ClaseAlerta.AUDIO) {
-            String rutaAudio = fileStorageService.guardarEvidenciaBase64(alertaRequest.getUrlAudio(), sesionId, "audio", nombreEstudiante, examen.getMateriaCodigo());
+            String rutaAudio = "E2EE_AUDIO";
             alertaGuardar = new AlertaAudio(
                     alertaRequest.getTranscripcion(),
                     alertaRequest.getVocesDetectadas(),
@@ -242,7 +242,7 @@ public class SesionSupervisionService {
                     rutaAudio);
 
         } else if (alertaRequest.getClaseAlerta() == ClaseAlerta.PROCESO) {
-            String rutaPantalla = fileStorageService.guardarEvidenciaBase64(alertaRequest.getUrlCapturaPantalla(), sesionId, "proceso", nombreEstudiante, examen.getMateriaCodigo());
+            String rutaPantalla = "E2EE_PROCESO";
             
             alertaGuardar = new AlertaProceso(
                     alertaRequest.getPidProceso(),
@@ -252,7 +252,7 @@ public class SesionSupervisionService {
                     rutaPantalla);
 
         } else if (alertaRequest.getClaseAlerta() == ClaseAlerta.TECLADO) {
-            String rutaPantalla = fileStorageService.guardarEvidenciaBase64(alertaRequest.getUrlCapturaPantalla(), sesionId, "teclado", nombreEstudiante, examen.getMateriaCodigo());
+            String rutaPantalla = "E2EE_TECLADO";
             alertaGuardar = new AlertaTeclado(
                     alertaRequest.getCombinacionTeclas(),
                     alertaRequest.getPatronSospechoso(),
@@ -261,6 +261,9 @@ public class SesionSupervisionService {
 
         //Se llena en la clase padre los datos basicos que tendran todos los tipos de alertas
         if (alertaGuardar != null) {
+            alertaGuardar.setHashWebcam(alertaRequest.getHashWebcam());
+            alertaGuardar.setHashPantalla(alertaRequest.getHashPantalla());
+            alertaGuardar.setHashAudio(alertaRequest.getHashAudio());
             alertaGuardar.setSesionId(sesionId);
             alertaGuardar.setClaseAlerta(alertaRequest.getClaseAlerta());
             alertaGuardar.setNivelRiesgo(alertaRequest.getNivelRiesgo());
