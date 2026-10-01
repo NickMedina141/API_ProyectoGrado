@@ -176,7 +176,12 @@ public class SesionSupervisionService {
     }
     
     public SesionSupervision obtenerSesion(String sesionId) {
-        return sesionSupervisionRepository.findById(sesionId).orElseThrow(() -> new RuntimeException("No existe"));
+        SesionSupervision sesion = sesionSupervisionRepository.findById(sesionId).orElseThrow(() -> new RuntimeException("No existe"));
+        estudianteRepository.findById(sesion.getEstudianteId()).ifPresent(est -> {
+            sesion.setNombreEstudiante(est.getNombre() + " " + est.getApellidos());
+            sesion.setCedula(est.getCedula());
+        });
+        return sesion;
     }
     
     public com.example.AppSegurity.DTO.ReglasExamenResponse obtenerReglasExamen(String sesionId) {
@@ -365,10 +370,11 @@ public class SesionSupervisionService {
             sesiones.removeIf(s -> s.getEstadoSesion() != EstadoSesion.INICIADA);
         }
         
-        // Agregar el nombre real del estudiante y metricas
+        // Agregar el nombre real del estudiante, su cédula oficial y métricas
         for (SesionSupervision s : sesiones) {
             estudianteRepository.findById(s.getEstudianteId()).ifPresent(est -> {
                 s.setNombreEstudiante(est.getNombre() + " " + est.getApellidos());
+                s.setCedula(est.getCedula());
             });
             
             List<com.example.AppSegurity.Models.AlertaEvidencia> alertas = alertaEvidenciaRepository.findBySesionIdOrderByHoraCapturaAsc(s.getSesionId());

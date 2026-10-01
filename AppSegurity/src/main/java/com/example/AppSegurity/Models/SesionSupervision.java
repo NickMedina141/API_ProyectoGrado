@@ -30,6 +30,9 @@ public class SesionSupervision {
     private String nombreEstudiante;
     
     @org.springframework.data.annotation.Transient
+    private String cedula;
+    
+    @org.springframework.data.annotation.Transient
     private int cantidadAlertas;
     
     @org.springframework.data.annotation.Transient
