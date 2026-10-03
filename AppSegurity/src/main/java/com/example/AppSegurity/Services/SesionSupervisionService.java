@@ -118,7 +118,48 @@ public class SesionSupervisionService {
         
         for (SesionSupervision s : sesionesPrevias) {
             if (s.getEstudianteId().equals(estudiante.getEstudianteId())) {
-                if (s.getEstadoSesion() == EstadoSesion.INICIADA) {
+                if (s.getEstadoSesion() == EstadoSesion.INICIADA || s.getEstadoSesion() == EstadoSesion.INTERRUMPIDA) {
+                    String devExistente = (s.getConexion() != null) ? s.getConexion().getDeviceId() : null;
+                    String devEntrante = (conexionInfo != null) ? conexionInfo.getDeviceId() : null;
+
+                    // Si ambos tienen deviceId y NO coinciden -> Intento de sesión simultánea en segundo equipo
+                    if (devExistente != null && devEntrante != null && !devExistente.equalsIgnoreCase(devEntrante)) {
+                        AlertaProceso alertaDup = new AlertaProceso(
+                            0,
+                            "INTENTO_SESION_DUPLICADA",
+                            com.example.AppSegurity.Enums.CategoriaProceso.CONTROL_REMOTO,
+                            com.example.AppSegurity.Enums.AccionTomada.BLOQUEADO,
+                            null
+                        );
+                        alertaDup.setSesionId(s.getSesionId());
+                        alertaDup.setClaseAlerta(ClaseAlerta.SESION_DUPLICADA);
+                        alertaDup.setNivelRiesgo(NivelRiesgo.CRITICO);
+                        alertaDup.setHoraCaptura(LocalDateTime.now());
+                        alertaDup.setNombreEstudiante(estudiante.getNombre() + " " + estudiante.getApellidos());
+                        alertaEvidenciaRepository.save(alertaDup);
+
+                        try {
+                            java.util.Map<String, Object> evDup = new java.util.HashMap<>();
+                            evDup.put("tipoEvento", "SESION_DUPLICADA_BLOQUEADA");
+                            evDup.put("sesionId", s.getSesionId());
+                            evDup.put("estudianteId", s.getEstudianteId());
+                            evDup.put("nombreEstudiante", estudiante.getNombre() + " " + estudiante.getApellidos());
+                            evDup.put("ipIntruso", conexionInfo != null ? conexionInfo.getIpEstudiante() : "Desconocida");
+                            evDup.put("macIntruso", conexionInfo != null ? conexionInfo.getDireccionMac() : "Desconocida");
+                            evDup.put("mensaje", "Intento de inicio de sesión simultáneo en otro dispositivo bloqueado.");
+                            webSocketMessagingTemplate.convertAndSend((String) ("/topic/alertas/" + s.getExamenId()), (Object) evDup);
+                        } catch (Exception ignored) {}
+
+                        throw new RuntimeException("Acceso denegado: Ya existe una sesión activa para este examen en otro equipo. Por motivos de integridad académica no se permite el acceso simultáneo desde múltiples dispositivos.");
+                    }
+
+                    // Mismo dispositivo: reconexión autorizada
+                    s.setEstadoSesion(EstadoSesion.INICIADA);
+                    if (conexionInfo != null) {
+                        s.setConexion(conexionInfo);
+                    }
+                    sesionSupervisionRepository.save(s);
+
                     try {
                         java.util.Map<String, String> evento = new java.util.HashMap<>();
                         evento.put("tipoEvento", "ESTUDIANTE_UNIDO");
@@ -126,7 +167,7 @@ public class SesionSupervisionService {
                         evento.put("estudianteId", s.getEstudianteId());
                         webSocketMessagingTemplate.convertAndSend("/topic/alertas/" + s.getExamenId(), evento);
                     } catch (Exception e) {}
-                    return s; // Reutiliza la sesion si ya estaba adentro
+                    return s; // Reutiliza la sesion si ya estaba adentro en el mismo equipo
                 } else if (s.getEstadoSesion() == EstadoSesion.FINALIZADA || s.getEstadoSesion() == EstadoSesion.ANULADA || s.getEstadoSesion() == EstadoSesion.APELACION_CURSO) {
                     intentosCompletados++;
                     
@@ -226,15 +267,15 @@ public class SesionSupervisionService {
 
         AlertaEvidencia alertaGuardar = null;
 
-        if (alertaRequest.getClaseAlerta() == ClaseAlerta.VISION || alertaRequest.getClaseAlerta() == ClaseAlerta.OBJETO) {
+        if (alertaRequest.getClaseAlerta() == ClaseAlerta.VISION || alertaRequest.getClaseAlerta() == ClaseAlerta.OBJETO || alertaRequest.getClaseAlerta() == ClaseAlerta.CAMARA_OBSTRUIDA) {
             String rutaWebcam = "E2EE_WEBCAM";
             String rutaPantalla = "E2EE_PANTALLA";
             
             alertaGuardar = new AlertaVision(
-                    alertaRequest.getTipoEvidenciaVision(),
-                    alertaRequest.getCantidadRostros(),
-                    alertaRequest.getObjetoDetectado(),
-                    alertaRequest.getConfianzaIa(),
+                    alertaRequest.getTipoEvidenciaVision() != null ? alertaRequest.getTipoEvidenciaVision() : com.example.AppSegurity.Enums.TipoEvidenciaVision.WEBCAM_OBJETO,
+                    alertaRequest.getCantidadRostros() != null ? alertaRequest.getCantidadRostros() : 0,
+                    alertaRequest.getObjetoDetectado() != null ? alertaRequest.getObjetoDetectado() : "Alerta de Visión",
+                    alertaRequest.getConfianzaIa() != null ? alertaRequest.getConfianzaIa() : 1.0,
                     rutaWebcam,
                     rutaPantalla);
 
@@ -246,14 +287,14 @@ public class SesionSupervisionService {
                     alertaRequest.getConfianzaVoz(),
                     rutaAudio);
 
-        } else if (alertaRequest.getClaseAlerta() == ClaseAlerta.PROCESO) {
+        } else if (alertaRequest.getClaseAlerta() == ClaseAlerta.PROCESO || alertaRequest.getClaseAlerta() == ClaseAlerta.ENTORNO || alertaRequest.getClaseAlerta() == ClaseAlerta.CONTROL_REMOTO || alertaRequest.getClaseAlerta() == ClaseAlerta.APP_TERMINADA || alertaRequest.getClaseAlerta() == ClaseAlerta.SESION_DUPLICADA) {
             String rutaPantalla = "E2EE_PROCESO";
             
             alertaGuardar = new AlertaProceso(
-                    alertaRequest.getPidProceso(),
-                    alertaRequest.getNombreProceso(),
-                    alertaRequest.getCategoriaProceso(),
-                    alertaRequest.getAccionTomada(),
+                    alertaRequest.getPidProceso() != null ? alertaRequest.getPidProceso() : 0,
+                    alertaRequest.getNombreProceso() != null ? alertaRequest.getNombreProceso() : alertaRequest.getClaseAlerta().name(),
+                    alertaRequest.getCategoriaProceso() != null ? alertaRequest.getCategoriaProceso() : com.example.AppSegurity.Enums.CategoriaProceso.CONTROL_REMOTO,
+                    alertaRequest.getAccionTomada() != null ? alertaRequest.getAccionTomada() : com.example.AppSegurity.Enums.AccionTomada.ADVERTENCIA_MOSTRADA,
                     rutaPantalla);
 
         } else if (alertaRequest.getClaseAlerta() == ClaseAlerta.TECLADO) {
@@ -262,6 +303,8 @@ public class SesionSupervisionService {
                     alertaRequest.getCombinacionTeclas(),
                     alertaRequest.getPatronSospechoso(),
                     rutaPantalla);
+        } else {
+            alertaGuardar = new AlertaEvidencia();
         }
 
         //Se llena en la clase padre los datos basicos que tendran todos los tipos de alertas
@@ -396,6 +439,27 @@ public class SesionSupervisionService {
         }
         
         return sesiones;
+    }
+
+    public SesionSupervision registrarHeartbeat(String sesionId, String deviceId) {
+        SesionSupervision sesion = sesionSupervisionRepository.findById(sesionId)
+                .orElseThrow(() -> new RuntimeException("La sesión no existe"));
+
+        if (deviceId != null && sesion.getConexion() != null && sesion.getConexion().getDeviceId() != null) {
+            if (!sesion.getConexion().getDeviceId().equalsIgnoreCase(deviceId)) {
+                throw new RuntimeException("Dispositivo no autorizado para esta sesión");
+            }
+        }
+        return sesion;
+    }
+
+    public void marcarSesionInterrumpida(String sesionId, String motivo) {
+        sesionSupervisionRepository.findById(sesionId).ifPresent(sesion -> {
+            if (sesion.getEstadoSesion() == EstadoSesion.INICIADA) {
+                sesion.setEstadoSesion(EstadoSesion.INTERRUMPIDA);
+                sesionSupervisionRepository.save(sesion);
+            }
+        });
     }
 
 }

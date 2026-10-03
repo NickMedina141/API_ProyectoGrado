@@ -163,4 +163,27 @@ public class SupervisionController {
         }
     }
 
+    @PostMapping("/{sesionId}/heartbeat")
+    public ResponseEntity<?> registrarHeartbeat(@PathVariable String sesionId, @RequestParam(required = false) String deviceId) {
+        try {
+            SesionSupervision sesion = sesionSupervisionService.registrarHeartbeat(sesionId, deviceId);
+            java.util.Map<String, Object> resp = new java.util.HashMap<>();
+            resp.put("sesionId", sesion.getSesionId());
+            resp.put("estadoSesion", sesion.getEstadoSesion());
+            return ResponseEntity.ok(resp);
+        } catch (Exception e) {
+            return ResponseEntity.status(403).body("Error en heartbeat: " + e.getMessage());
+        }
+    }
+
+    @PostMapping("/{sesionId}/interrumpir")
+    public ResponseEntity<?> interrumpirSesion(@PathVariable String sesionId, @RequestParam(required = false, defaultValue = "App cerrada abruptamente") String motivo) {
+        try {
+            sesionSupervisionService.marcarSesionInterrumpida(sesionId, motivo);
+            return ResponseEntity.ok("Sesión marcada como interrumpida");
+        } catch (Exception e) {
+            return ResponseEntity.status(400).body("Error al interrumpir sesión: " + e.getMessage());
+        }
+    }
+
 }
