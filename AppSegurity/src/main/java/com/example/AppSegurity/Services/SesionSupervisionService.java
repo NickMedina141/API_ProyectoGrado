@@ -287,7 +287,7 @@ public class SesionSupervisionService {
                     alertaRequest.getConfianzaVoz(),
                     rutaAudio);
 
-        } else if (alertaRequest.getClaseAlerta() == ClaseAlerta.PROCESO || alertaRequest.getClaseAlerta() == ClaseAlerta.ENTORNO || alertaRequest.getClaseAlerta() == ClaseAlerta.CONTROL_REMOTO || alertaRequest.getClaseAlerta() == ClaseAlerta.APP_TERMINADA || alertaRequest.getClaseAlerta() == ClaseAlerta.SESION_DUPLICADA) {
+        } else if (alertaRequest.getClaseAlerta() == ClaseAlerta.PROCESO || alertaRequest.getClaseAlerta() == ClaseAlerta.ENTORNO || alertaRequest.getClaseAlerta() == ClaseAlerta.CONTROL_REMOTO || alertaRequest.getClaseAlerta() == ClaseAlerta.APP_TERMINADA || alertaRequest.getClaseAlerta() == ClaseAlerta.SESION_DUPLICADA || alertaRequest.getClaseAlerta() == ClaseAlerta.DESCONEXION_REINCIDENTE || alertaRequest.getClaseAlerta() == ClaseAlerta.DESCONEXION_PROLONGADA) {
             String rutaPantalla = "E2EE_PROCESO";
             
             alertaGuardar = new AlertaProceso(
