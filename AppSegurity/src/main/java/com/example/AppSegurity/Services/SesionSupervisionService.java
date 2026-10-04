@@ -189,7 +189,7 @@ public class SesionSupervisionService {
         }
         
         if (examen.getConfiguracionExamen() != null && examen.getConfiguracionExamen().getPermitirReintentos() != null) {
-             if (intentosCompletados > examen.getConfiguracionExamen().getPermitirReintentos()) {
+             if (intentosCompletados >= examen.getConfiguracionExamen().getPermitirReintentos()) {
                  throw new RuntimeException("Has alcanzado el limite maximo de intentos permitidos.");
              }
         }
