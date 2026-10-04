@@ -7,4 +7,6 @@ import org.springframework.data.mongodb.repository.MongoRepository;
 public interface ProfesorRepository extends MongoRepository<Profesor, String>{
     //Busca y trae el email del profesor
     Optional<Profesor> findByEmailInstitucional(String emailInstitucional);
+    Optional<Profesor> findByCedula(String cedula);
+    Optional<Profesor> findByCodigoProfesor(String codigoProfesor);
 }

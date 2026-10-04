@@ -72,4 +72,57 @@ public class AutenticacionController {
             return ResponseEntity.status(403).body("Token inválido o expirado");
         }
     }
+
+    // --- ENDPOINTS DE AUTO-REGISTRO INSTITUCIONAL CON OTP ---
+
+    @PostMapping("/registro/solicitar-codigo")
+    public ResponseEntity<?> solicitarCodigoRegistro(@RequestBody com.example.AppSegurity.DTO.RegistroSolicitudRequest request) {
+        try {
+            autenticacionService.solicitarCodigoRegistro(request);
+            Map<String, Object> resp = new HashMap<>();
+            resp.put("exito", true);
+            resp.put("mensaje", "Código de verificación enviado exitosamente a tu correo institucional.");
+            return ResponseEntity.ok(resp);
+        } catch (IllegalArgumentException e) {
+            return ResponseEntity.status(400).body(Map.of("exito", false, "mensaje", e.getMessage()));
+        } catch (IllegalStateException e) {
+            return ResponseEntity.status(409).body(Map.of("exito", false, "mensaje", e.getMessage()));
+        } catch (Exception e) {
+            return ResponseEntity.status(500).body(Map.of("exito", false, "mensaje", "Error interno al procesar el registro: " + e.getMessage()));
+        }
+    }
+
+    @PostMapping("/registro/confirmar-estudiante")
+    public ResponseEntity<?> confirmarRegistroEstudiante(@RequestBody com.example.AppSegurity.DTO.RegistroConfirmarRequest request) {
+        try {
+            autenticacionService.confirmarRegistroEstudiante(request);
+            Map<String, Object> resp = new HashMap<>();
+            resp.put("exito", true);
+            resp.put("mensaje", "Cuenta de estudiante creada y activada exitosamente. Ya puedes iniciar sesión.");
+            return ResponseEntity.ok(resp);
+        } catch (IllegalArgumentException e) {
+            return ResponseEntity.status(400).body(Map.of("exito", false, "mensaje", e.getMessage()));
+        } catch (IllegalStateException e) {
+            return ResponseEntity.status(400).body(Map.of("exito", false, "mensaje", e.getMessage()));
+        } catch (Exception e) {
+            return ResponseEntity.status(500).body(Map.of("exito", false, "mensaje", "No se pudo completar el registro: " + e.getMessage()));
+        }
+    }
+
+    @PostMapping("/registro/confirmar-profesor")
+    public ResponseEntity<?> confirmarRegistroProfesor(@RequestBody com.example.AppSegurity.DTO.RegistroConfirmarRequest request) {
+        try {
+            autenticacionService.confirmarRegistroProfesor(request);
+            Map<String, Object> resp = new HashMap<>();
+            resp.put("exito", true);
+            resp.put("mensaje", "Cuenta docente creada y activada exitosamente. Ya puedes iniciar sesión.");
+            return ResponseEntity.ok(resp);
+        } catch (IllegalArgumentException e) {
+            return ResponseEntity.status(400).body(Map.of("exito", false, "mensaje", e.getMessage()));
+        } catch (IllegalStateException e) {
+            return ResponseEntity.status(400).body(Map.of("exito", false, "mensaje", e.getMessage()));
+        } catch (Exception e) {
+            return ResponseEntity.status(500).body(Map.of("exito", false, "mensaje", "No se pudo completar el registro: " + e.getMessage()));
+        }
+    }
 }

@@ -41,6 +41,7 @@ public class SesionSupervisionService {
     private SimpMessagingTemplate webSocketMessagingTemplate;
     @Autowired
     private FileStorageService fileStorageService;
+    
 
     public SesionSupervision iniciarSesion(String idEstudiante, String pinExamen, Conexion conexionInfo) {
 

@@ -12,6 +12,10 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.Authentication;
+import com.example.AppSegurity.DTO.RegistroSolicitudRequest;
+import com.example.AppSegurity.DTO.RegistroConfirmarRequest;
+import com.example.AppSegurity.Sub_Clases.Auditoria;
+import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 
 @Service
@@ -31,6 +35,172 @@ public class AutenticacionService {
 
     @Autowired
     private ServicioDetallesUsuarioPersonalizados userDetailsService;
+
+    @Autowired
+    private PasswordEncoder passwordEncoder;
+
+    @Autowired
+    private EmailService emailService;
+
+    // --- CACHÉ DE CÓDIGOS OTP PARA REGISTRO TEMPORAL (10 MINUTOS) ---
+    private static class OtpInfo {
+        String codigo;
+        LocalDateTime expiracion;
+        String rol;
+
+        OtpInfo(String codigo, LocalDateTime expiracion, String rol) {
+            this.codigo = codigo;
+            this.expiracion = expiracion;
+            this.rol = rol;
+        }
+    }
+
+    private final java.util.concurrent.ConcurrentHashMap<String, OtpInfo> cacheOtp = new java.util.concurrent.ConcurrentHashMap<>();
+
+    public void solicitarCodigoRegistro(RegistroSolicitudRequest req) {
+        if (req == null || req.getEmail() == null || req.getCedula() == null || req.getRol() == null) {
+            throw new IllegalArgumentException("Todos los campos obligatorios deben ser diligenciados.");
+        }
+
+        String email = req.getEmail().trim().toLowerCase();
+        String cedula = req.getCedula().trim();
+        String rol = req.getRol().trim().toUpperCase();
+
+        // 1. Validar dominio institucional (@unicesar.edu.co o @gmail.com de prueba)
+        if (!email.matches("^[A-Za-z0-9._%+-]+@(unicesar\\.edu\\.co|gmail\\.com)$")) {
+            throw new IllegalArgumentException("El correo debe pertenecer al dominio institucional (@unicesar.edu.co).");
+        }
+
+        // 2. Validar que la cédula sea numérica y válida
+        if (!cedula.matches("^[0-9]{6,12}$")) {
+            throw new IllegalArgumentException("La cédula debe contener entre 6 y 12 dígitos numéricos.");
+        }
+
+        // 3. Validar no duplicados en BD según el rol
+        if ("ESTUDIANTE".equals(rol)) {
+            if (!estudianteRepository.findByEmailIgnoreCase(email).isEmpty()) {
+                throw new IllegalStateException("El correo institucional ya se encuentra registrado para un estudiante.");
+            }
+            if (estudianteRepository.findByCedula(cedula).isPresent()) {
+                throw new IllegalStateException("La cédula ya se encuentra registrada en el sistema.");
+            }
+        } else if ("PROFESOR".equals(rol)) {
+            if (profesorRepository.findByEmailInstitucional(email).isPresent()) {
+                throw new IllegalStateException("El correo institucional ya se encuentra registrado para un docente.");
+            }
+            if (profesorRepository.findByCedula(cedula).isPresent()) {
+                throw new IllegalStateException("La cédula ya se encuentra registrada en el sistema.");
+            }
+        } else {
+            throw new IllegalArgumentException("Rol no válido. Debe ser ESTUDIANTE o PROFESOR.");
+        }
+
+        // 4. Generar código de 6 dígitos numéricos
+        String codigoOtp = String.format("%06d", new java.util.Random().nextInt(1000000));
+
+        // 5. Guardar en caché con expiración de 10 minutos
+        cacheOtp.put(email, new OtpInfo(codigoOtp, LocalDateTime.now().plusMinutes(10), rol));
+
+        // 6. Enviar correo electrónico institucional
+        emailService.enviarCodigoVerificacion(email, req.getNombre(), codigoOtp, rol);
+    }
+
+    public void confirmarRegistroEstudiante(RegistroConfirmarRequest req) {
+        if (req == null || req.getEmail() == null || req.getCodigoOtp() == null || req.getPassword() == null) {
+            throw new IllegalArgumentException("Todos los campos son requeridos.");
+        }
+
+        String email = req.getEmail().trim().toLowerCase();
+        String codigoIngresado = req.getCodigoOtp().trim();
+
+        // 1. Validar OTP en caché
+        OtpInfo otpInfo = cacheOtp.get(email);
+        if (otpInfo == null) {
+            throw new IllegalStateException("No hay una solicitud de código pendiente para este correo o el código ya venció.");
+        }
+        if (LocalDateTime.now().isAfter(otpInfo.expiracion)) {
+            cacheOtp.remove(email);
+            throw new IllegalStateException("El código de verificación ha expirado. Solicita uno nuevo.");
+        }
+        if (!otpInfo.codigo.equals(codigoIngresado)) {
+            throw new IllegalArgumentException("El código de verificación de 6 dígitos es incorrecto.");
+        }
+
+        // 2. Validar contraseña mínima
+        if (req.getPassword().length() < 6) {
+            throw new IllegalArgumentException("La contraseña debe tener al menos 6 caracteres.");
+        }
+
+        // 3. Crear el nuevo Estudiante
+        Estudiante nuevo = new Estudiante();
+        nuevo.setEstudianteId("EST-" + req.getCedula().trim());
+        nuevo.setNombre(req.getNombre().trim());
+        nuevo.setApellidos(req.getApellidos().trim());
+        nuevo.setCedula(req.getCedula().trim());
+        nuevo.setEmail(email);
+        nuevo.setPasswordHash(passwordEncoder.encode(req.getPassword()));
+        nuevo.setEstadoUsuario(EstadoUsuario.ACTIVO);
+        nuevo.setMateriasInscritas(new java.util.ArrayList<>());
+
+        Auditoria aud = new Auditoria();
+        aud.setFechaRegistro(LocalDateTime.now());
+        nuevo.setAuditoria(aud);
+
+        estudianteRepository.save(nuevo);
+        cacheOtp.remove(email);
+        System.out.println("[REGISTRO EXITOSO] Estudiante creado: " + email + " (" + nuevo.getEstudianteId() + ")");
+    }
+
+    public void confirmarRegistroProfesor(RegistroConfirmarRequest req) {
+        if (req == null || req.getEmail() == null || req.getCodigoOtp() == null || req.getPassword() == null) {
+            throw new IllegalArgumentException("Todos los campos son requeridos.");
+        }
+
+        String email = req.getEmail().trim().toLowerCase();
+        String codigoIngresado = req.getCodigoOtp().trim();
+
+        // 1. Validar OTP en caché
+        OtpInfo otpInfo = cacheOtp.get(email);
+        if (otpInfo == null) {
+            throw new IllegalStateException("No hay una solicitud de código pendiente para este correo o el código ya venció.");
+        }
+        if (LocalDateTime.now().isAfter(otpInfo.expiracion)) {
+            cacheOtp.remove(email);
+            throw new IllegalStateException("El código de verificación ha expirado. Solicita uno nuevo.");
+        }
+        if (!otpInfo.codigo.equals(codigoIngresado)) {
+            throw new IllegalArgumentException("El código de verificación de 6 dígitos es incorrecto.");
+        }
+
+        // 2. Validar contraseña mínima
+        if (req.getPassword().length() < 6) {
+            throw new IllegalArgumentException("La contraseña debe tener al menos 6 caracteres.");
+        }
+
+        // 3. Código profesor
+        String codProf = (req.getCodigoProfesor() != null && !req.getCodigoProfesor().trim().isEmpty())
+                ? req.getCodigoProfesor().trim()
+                : "PROF-" + req.getCedula().trim();
+
+        // 4. Crear el nuevo Profesor
+        Profesor nuevo = new Profesor();
+        nuevo.setCodigoProfesor(codProf);
+        nuevo.setNombre(req.getNombre().trim());
+        nuevo.setApellidos(req.getApellidos().trim());
+        nuevo.setCedula(req.getCedula().trim());
+        nuevo.setEmailInstitucional(email);
+        nuevo.setPasswordHash(passwordEncoder.encode(req.getPassword()));
+        nuevo.setEstado(EstadoUsuario.ACTIVO);
+        nuevo.setMaterias(new java.util.ArrayList<>());
+
+        Auditoria aud = new Auditoria();
+        aud.setFechaRegistro(LocalDateTime.now());
+        nuevo.setAuditoria(aud);
+
+        profesorRepository.save(nuevo);
+        cacheOtp.remove(email);
+        System.out.println("[REGISTRO EXITOSO] Docente creado: " + email + " (" + nuevo.getCodigoProfesor() + ")");
+    }
 
     public String loginEstudiante(String email, String passwordTextoPlano) {
         //

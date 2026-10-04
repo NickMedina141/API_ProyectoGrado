@@ -60,4 +60,55 @@ public class EmailService {
             e.printStackTrace();
         }
     }
+
+    @Async
+    public void enviarCodigoVerificacion(String correo, String nombre, String codigoOtp, String rol) {
+        System.out.println("[REGISTRO OTP] Generado para " + correo + " (" + rol + "): " + codigoOtp);
+        try {
+            MimeMessage mensaje = javaMailSender.createMimeMessage();
+            MimeMessageHelper helper = new MimeMessageHelper(mensaje, true, "UTF-8");
+
+            helper.setTo(correo);
+            helper.setSubject("Código de Verificación [" + codigoOtp + "] - Registro UPC Proctor");
+
+            String nombreDest = (nombre != null && !nombre.isBlank()) ? nombre : "Usuario Institucional";
+            String rolTexto = "PROFESOR".equalsIgnoreCase(rol) ? "Docente / Evaluador" : "Estudiante";
+
+            String htmlTemplate = "<div style=\"font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; max-width: 600px; margin: 0 auto; border: 1px solid #E0E0E0; border-radius: 6px; overflow: hidden; box-shadow: 0 4px 12px rgba(0,0,0,0.06);\">"
+                    + "<div style=\"background-color: #003B13; padding: 25px 30px; text-align: center; border-bottom: 4px solid #F1C40F;\">"
+                    + "<h2 style=\"color: #FFFFFF; margin: 0; font-size: 20px; font-weight: 600; letter-spacing: 0.5px;\">Universidad Popular del Cesar</h2>"
+                    + "<p style=\"color: #A9DFBF; margin: 5px 0 0 0; font-size: 13px;\">Sistema de Supervisi&oacute;n e Integridad Acad&eacute;mica (UPC Proctor)</p>"
+                    + "</div>"
+                    + "<div style=\"padding: 35px 30px; background-color: #FFFFFF;\">"
+                    + "<p style=\"font-size: 15px; color: #2C3E50; margin-top: 0;\">Estimado/a <strong>" + nombreDest + "</strong>,</p>"
+                    + "<p style=\"font-size: 14px; color: #34495E; line-height: 1.6; text-align: justify;\">"
+                    + "Has iniciado el proceso de registro institucional como <strong>" + rolTexto + "</strong> en la plataforma. Para verificar tu identidad y validar el acceso a tu casillero institucional, utiliza el siguiente c&oacute;digo de confirmaci&oacute;n de un solo uso (OTP):"
+                    + "</p>"
+                    + "<div style=\"margin: 25px auto; max-width: 280px; padding: 16px 20px; background-color: #F4FBF7; border: 2px dashed #196F3D; border-radius: 8px; text-align: center;\">"
+                    + "<span style=\"font-family: 'Consolas', 'Courier New', monospace; font-size: 32px; font-weight: bold; letter-spacing: 8px; color: #003B13;\">" + codigoOtp + "</span>"
+                    + "</div>"
+                    + "<p style=\"font-size: 13px; color: #7F8C8D; line-height: 1.5; text-align: center;\">"
+                    + "⏰ Este c&oacute;digo vencer&aacute; autom&aacute;ticamente en <strong>10 minutos</strong>."
+                    + "</p>"
+                    + "<div style=\"margin-top: 25px; padding: 12px 16px; background-color: #FFF9E6; border-left: 4px solid #F1C40F; border-radius: 4px;\">"
+                    + "<p style=\"font-size: 12px; color: #7D6608; margin: 0; line-height: 1.4;\">"
+                    + "<strong>Aviso de Seguridad:</strong> Si t&uacute; no solicitaste este registro, por favor ignora este correo. Ning&uacute;n administrador de la universidad te pedir&aacute; jam&aacute;s este c&oacute;digo."
+                    + "</p>"
+                    + "</div>"
+                    + "</div>"
+                    + "<div style=\"background-color: #F8F9FA; padding: 15px 30px; text-align: center; font-size: 11px; color: #95A5A6; border-top: 1px solid #E5E7E9;\">"
+                    + "Mensaje autogenerado por el sistema institucional. Por favor no responda a este correo.<br>"
+                    + "&copy; 2026 Universidad Popular del Cesar &bull; Valledupar, Cesar, Colombia."
+                    + "</div>"
+                    + "</div>";
+
+            helper.setText(htmlTemplate, true);
+            javaMailSender.send(mensaje);
+            System.out.println("[REGISTRO OTP] Correo enviado exitosamente a " + correo);
+        } catch (Exception e) {
+            System.err.println("[REGISTRO OTP ERROR] No se pudo despachar el correo SMTP a " + correo + ": " + e.getMessage());
+            // Mantener el log en consola para soporte en entorno local/pruebas
+            System.out.println("[OTP BACKUP CONSOLA] >>> CÓDIGO VÁLIDO PARA " + correo + ": " + codigoOtp + " <<<");
+        }
+    }
 }

@@ -29,6 +29,8 @@ public class NuevaAlertaRequest {
     private String hashPantalla;
     private String hashAudio;
     
+    
+    
     //Campos de una alerta de tipo audio
     private String transcripcion;
     private Integer vocesDetectadas;

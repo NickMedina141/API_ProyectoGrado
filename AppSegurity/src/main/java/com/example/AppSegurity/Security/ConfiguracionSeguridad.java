@@ -8,7 +8,7 @@ import org.springframework.security.config.annotation.authentication.configurati
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
 import org.springframework.security.config.http.SessionCreationPolicy;
-import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
+import org.springframework.security.crypto.argon2.Argon2PasswordEncoder;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
@@ -51,8 +51,8 @@ public class ConfiguracionSeguridad {
     // Spring Security usará esto automáticamente para comparar los hashes de la base de datos
     @Bean
     public PasswordEncoder passwordEncoder() {
-        // BCrypt es el estándar de la industria: auto-descriptivo, rápido y seguro
-        return new BCryptPasswordEncoder();
+        // Configuramos Argon2 con valores modernos y altamente seguros
+        return new Argon2PasswordEncoder(16, 32, 1, 4096, 3);
     }
 
     // 3. EXPORTAR EL MANAGER DE AUTENTICACIÓN
