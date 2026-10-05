@@ -9,6 +9,7 @@ import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
 import org.springframework.security.config.http.SessionCreationPolicy;
 import org.springframework.security.crypto.argon2.Argon2PasswordEncoder;
+import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
@@ -49,12 +50,26 @@ public class ConfiguracionSeguridad {
         return http.build();
     }
 
-    // 2. CONFIGURAR EL ENCRIPTADO (ARGON 2)
-    // Spring Security usará esto automáticamente para comparar los hashes de la base de datos
+    // 2. CONFIGURAR EL ENCRIPTADO (BCRYPT COMPATIBLE + ARGON2)
     @Bean
     public PasswordEncoder passwordEncoder() {
-        // Configuramos Argon2 con valores modernos y altamente seguros
-        return new Argon2PasswordEncoder(16, 32, 1, 4096, 3);
+        final PasswordEncoder bcrypt = new BCryptPasswordEncoder();
+        final PasswordEncoder argon2 = new Argon2PasswordEncoder(16, 32, 1, 4096, 3);
+        return new PasswordEncoder() {
+            @Override
+            public String encode(CharSequence rawPassword) {
+                return bcrypt.encode(rawPassword);
+            }
+
+            @Override
+            public boolean matches(CharSequence rawPassword, String encodedPassword) {
+                if (encodedPassword == null) return false;
+                if (encodedPassword.startsWith("$argon2")) {
+                    return argon2.matches(rawPassword, encodedPassword);
+                }
+                return bcrypt.matches(rawPassword, encodedPassword);
+            }
+        };
     }
 
     // 3. EXPORTAR EL MANAGER DE AUTENTICACIÓN

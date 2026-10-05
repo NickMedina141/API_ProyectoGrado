@@ -86,5 +86,20 @@ public class DataSeeder implements CommandLineRunner {
             System.out.println("CREADO SUPERADMIN: " + emailAdmin + " / CLAVE: admin12345");
             System.out.println("=========================================================");
         }
+
+        // Sincronizar y garantizar clave 123456 para Roberto Mendoza y cuentas de prueba
+        profesorRepository.findByEmailInstitucional("roberto.mendoza@unicesar.edu.co").ifPresent(prof -> {
+            prof.setPasswordHash(passwordEncoder.encode("123456"));
+            prof.setEstado(EstadoUsuario.ACTIVO);
+            profesorRepository.save(prof);
+            System.out.println(">>> [SEEDER] Clave sincronizada: roberto.mendoza@unicesar.edu.co / CLAVE: 123456 <<<");
+        });
+
+        profesorRepository.findByEmailInstitucional("profe@unicesar.edu.co").ifPresent(prof -> {
+            prof.setPasswordHash(passwordEncoder.encode("123456"));
+            prof.setEstado(EstadoUsuario.ACTIVO);
+            profesorRepository.save(prof);
+            System.out.println(">>> [SEEDER] Clave sincronizada: profe@unicesar.edu.co / CLAVE: 123456 <<<");
+        });
     }
 }
