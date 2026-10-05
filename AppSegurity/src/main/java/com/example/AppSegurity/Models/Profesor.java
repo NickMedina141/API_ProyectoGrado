@@ -28,6 +28,7 @@ public class Profesor {
     private List<Materia> materias; // Lista de materias asignadas al profesor
     private Auditoria auditoria;
     private SeguridadJwt seguridadJwt;
+    private String rol; // "PROFESOR" o "SUPERADMIN"
 
     
     //Constructor vacio

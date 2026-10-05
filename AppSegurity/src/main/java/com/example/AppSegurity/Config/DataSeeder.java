@@ -59,5 +59,32 @@ public class DataSeeder implements CommandLineRunner {
             System.out.println("CREADO PROFESOR DE PRUEBA: " + emailPrueba + " / CLAVE: 123456");
             System.out.println("=========================================================");
         }
+
+        // Verifica si el SuperADMIN ya existe
+        String emailAdmin = "admin@unicesar.edu.co";
+        if (profesorRepository.findByEmailInstitucional(emailAdmin).isEmpty()) {
+            Profesor admin = new Profesor();
+            admin.setCodigoProfesor("ADMIN-001");
+            admin.setNombre("Super Administrador");
+            admin.setApellidos("Institucional UPC");
+            admin.setCedula("1000000001");
+            admin.setEmailInstitucional(emailAdmin);
+            admin.setPasswordHash(passwordEncoder.encode("admin12345"));
+            admin.setEstado(EstadoUsuario.ACTIVO);
+            admin.setRol("SUPERADMIN");
+            admin.setMaterias(new ArrayList<>());
+
+            Auditoria auditoria = new Auditoria();
+            auditoria.setFechaRegistro(LocalDateTime.now());
+            admin.setAuditoria(auditoria);
+
+            SeguridadJwt seguridad = new SeguridadJwt();
+            admin.setSeguridadJwt(seguridad);
+
+            profesorRepository.save(admin);
+            System.out.println("=========================================================");
+            System.out.println("CREADO SUPERADMIN: " + emailAdmin + " / CLAVE: admin12345");
+            System.out.println("=========================================================");
+        }
     }
 }

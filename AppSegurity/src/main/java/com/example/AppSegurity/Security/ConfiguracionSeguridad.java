@@ -33,8 +33,10 @@ public class ConfiguracionSeguridad {
                 //Rutas públicas (El Login). Todos pueden entrar aquí sin token y sin 
                 // OJO: Asumo que tus Controladores tendrán "/api/auth/login..."
                 .requestMatchers("/api/auth/**").permitAll()
-                //Solo para los profesores
-                .requestMatchers("/api/profesor/**").hasRole("PROFESOR")
+                //Solo para administradores y superadmin
+                .requestMatchers("/api/admin/**").hasAnyRole("ADMIN", "SUPERADMIN")
+                //Solo para los profesores (y administradores)
+                .requestMatchers("/api/profesor/**").hasAnyRole("PROFESOR", "ADMIN", "SUPERADMIN")
                 //Solo para los estudiantes
                 .requestMatchers("/api/estudiante/**").hasRole("ESTUDIANTE")
                 // Cualquier otra ruta de la API (Ej: /api/examenes) exigirá que el token sea válido

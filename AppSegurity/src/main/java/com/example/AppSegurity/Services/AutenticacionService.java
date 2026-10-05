@@ -14,6 +14,8 @@ import org.springframework.security.authentication.UsernamePasswordAuthenticatio
 import org.springframework.security.core.Authentication;
 import com.example.AppSegurity.DTO.RegistroSolicitudRequest;
 import com.example.AppSegurity.DTO.RegistroConfirmarRequest;
+import com.example.AppSegurity.DTO.RecuperarSolicitudRequest;
+import com.example.AppSegurity.DTO.RecuperarConfirmarRequest;
 import com.example.AppSegurity.Sub_Clases.Auditoria;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
@@ -200,6 +202,99 @@ public class AutenticacionService {
         profesorRepository.save(nuevo);
         cacheOtp.remove(email);
         System.out.println("[REGISTRO EXITOSO] Docente creado: " + email + " (" + nuevo.getCodigoProfesor() + ")");
+    }
+
+    public void solicitarCodigoRecuperacion(RecuperarSolicitudRequest req) {
+        if (req == null || req.getEmail() == null || req.getEmail().trim().isEmpty()) {
+            throw new IllegalArgumentException("El correo institucional es obligatorio.");
+        }
+
+        String email = req.getEmail().trim().toLowerCase();
+
+        // 1. Buscar si el usuario existe como Estudiante o Profesor
+        String nombreUsuario = null;
+        boolean existe = false;
+
+        var estudiantes = estudianteRepository.findByEmailIgnoreCase(email);
+        if (!estudiantes.isEmpty()) {
+            nombreUsuario = estudiantes.get(0).getNombre() + " " + estudiantes.get(0).getApellidos();
+            existe = true;
+        } else {
+            var profOpt = profesorRepository.findByEmailInstitucional(email);
+            if (profOpt.isPresent()) {
+                nombreUsuario = profOpt.get().getNombre() + " " + profOpt.get().getApellidos();
+                existe = true;
+            }
+        }
+
+        if (!existe) {
+            throw new IllegalArgumentException("No se encontró ninguna cuenta asociada al correo institucional: " + email);
+        }
+
+        // 2. Generar código OTP de 6 dígitos numéricos
+        String codigoOtp = String.format("%06d", new java.util.Random().nextInt(1000000));
+
+        // 3. Guardar en caché con expiración de 10 minutos
+        cacheOtp.put(email, new OtpInfo(codigoOtp, LocalDateTime.now().plusMinutes(10), "RECUPERACION"));
+
+        // 4. Enviar correo de restablecimiento
+        emailService.enviarCodigoRecuperacion(email, nombreUsuario, codigoOtp);
+    }
+
+    public void confirmarRecuperacionPassword(RecuperarConfirmarRequest req) {
+        if (req == null || req.getEmail() == null || req.getCodigoOtp() == null || req.getNuevaPassword() == null) {
+            throw new IllegalArgumentException("Todos los campos son requeridos.");
+        }
+
+        String email = req.getEmail().trim().toLowerCase();
+        String codigoIngresado = req.getCodigoOtp().trim();
+
+        // 1. Validar OTP en caché
+        OtpInfo otpInfo = cacheOtp.get(email);
+        if (otpInfo == null) {
+            throw new IllegalStateException("No hay una solicitud de código pendiente para este correo o el código ya venció.");
+        }
+        if (LocalDateTime.now().isAfter(otpInfo.expiracion)) {
+            cacheOtp.remove(email);
+            throw new IllegalStateException("El código de verificación ha expirado. Solicita uno nuevo.");
+        }
+        if (!otpInfo.codigo.equals(codigoIngresado)) {
+            throw new IllegalArgumentException("El código de verificación de 6 dígitos es incorrecto.");
+        }
+
+        // 2. Validar contraseña mínima (8 caracteres)
+        if (req.getNuevaPassword().length() < 8) {
+            throw new IllegalArgumentException("La nueva contraseña debe tener al menos 8 caracteres.");
+        }
+
+        // 3. Actualizar contraseña en la BD
+        String nuevoHash = passwordEncoder.encode(req.getNuevaPassword());
+        boolean actualizada = false;
+
+        var estudiantes = estudianteRepository.findByEmailIgnoreCase(email);
+        if (!estudiantes.isEmpty()) {
+            for (Estudiante est : estudiantes) {
+                est.setPasswordHash(nuevoHash);
+                estudianteRepository.save(est);
+            }
+            actualizada = true;
+            System.out.println("[RECUPERACIÓN EXITOSA] Contraseña actualizada para estudiante: " + email);
+        } else {
+            var profOpt = profesorRepository.findByEmailInstitucional(email);
+            if (profOpt.isPresent()) {
+                Profesor prof = profOpt.get();
+                prof.setPasswordHash(nuevoHash);
+                profesorRepository.save(prof);
+                actualizada = true;
+                System.out.println("[RECUPERACIÓN EXITOSA] Contraseña actualizada para docente: " + email);
+            }
+        }
+
+        if (!actualizada) {
+            throw new IllegalStateException("No se pudo localizar el usuario para actualizar sus credenciales.");
+        }
+
+        cacheOtp.remove(email);
     }
 
     public String loginEstudiante(String email, String passwordTextoPlano) {

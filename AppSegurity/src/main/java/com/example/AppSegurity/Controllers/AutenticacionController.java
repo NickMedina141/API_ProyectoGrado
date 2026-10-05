@@ -50,6 +50,12 @@ public class AutenticacionController {
             response.put("token", token);
             if(prof != null) {
                 response.put("profesorId", prof.getCodigoProfesor());
+                String rol = (prof.getRol() != null && !prof.getRol().isBlank()) ? prof.getRol() : "PROFESOR";
+                if (prof.getCodigoProfesor() != null && prof.getCodigoProfesor().toUpperCase().startsWith("ADMIN")) {
+                    rol = "SUPERADMIN";
+                }
+                response.put("rol", rol);
+                response.put("nombre", ((prof.getNombre() != null ? prof.getNombre() : "") + " " + (prof.getApellidos() != null ? prof.getApellidos() : "")).trim());
             }
             return ResponseEntity.ok(response);
         } catch (Exception e) {
@@ -123,6 +129,42 @@ public class AutenticacionController {
             return ResponseEntity.status(400).body(Map.of("exito", false, "mensaje", e.getMessage()));
         } catch (Exception e) {
             return ResponseEntity.status(500).body(Map.of("exito", false, "mensaje", "No se pudo completar el registro: " + e.getMessage()));
+        }
+    }
+
+    // --- ENDPOINTS DE RECUPERACIÓN DE CONTRASEÑA CON OTP ---
+
+    @PostMapping("/recuperar/solicitar-codigo")
+    public ResponseEntity<?> solicitarCodigoRecuperacion(@RequestBody com.example.AppSegurity.DTO.RecuperarSolicitudRequest request) {
+        try {
+            autenticacionService.solicitarCodigoRecuperacion(request);
+            Map<String, Object> resp = new HashMap<>();
+            resp.put("exito", true);
+            resp.put("mensaje", "Código de recuperación enviado exitosamente a tu correo institucional.");
+            return ResponseEntity.ok(resp);
+        } catch (IllegalArgumentException e) {
+            return ResponseEntity.status(400).body(Map.of("exito", false, "mensaje", e.getMessage()));
+        } catch (IllegalStateException e) {
+            return ResponseEntity.status(400).body(Map.of("exito", false, "mensaje", e.getMessage()));
+        } catch (Exception e) {
+            return ResponseEntity.status(500).body(Map.of("exito", false, "mensaje", "Error al procesar la recuperación: " + e.getMessage()));
+        }
+    }
+
+    @PostMapping("/recuperar/confirmar")
+    public ResponseEntity<?> confirmarRecuperacionPassword(@RequestBody com.example.AppSegurity.DTO.RecuperarConfirmarRequest request) {
+        try {
+            autenticacionService.confirmarRecuperacionPassword(request);
+            Map<String, Object> resp = new HashMap<>();
+            resp.put("exito", true);
+            resp.put("mensaje", "Contraseña restablecida exitosamente. Ya puedes iniciar sesión con tu nueva contraseña.");
+            return ResponseEntity.ok(resp);
+        } catch (IllegalArgumentException e) {
+            return ResponseEntity.status(400).body(Map.of("exito", false, "mensaje", e.getMessage()));
+        } catch (IllegalStateException e) {
+            return ResponseEntity.status(400).body(Map.of("exito", false, "mensaje", e.getMessage()));
+        } catch (Exception e) {
+            return ResponseEntity.status(500).body(Map.of("exito", false, "mensaje", "Error al actualizar la contraseña: " + e.getMessage()));
         }
     }
 }
